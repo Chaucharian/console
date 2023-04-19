@@ -207,8 +207,11 @@ const params = new Params();
 params.noOptions(() => createProxyFlow());
 params.deploy({
   onServer: async ({ sourcePath, hostPath, user, host }) => {
+    spinner.start();
+
     await uploadSsh({ sourcePath, hostPath: `${user}@${host}:${hostPath}` });
     await runPm2build({ user, host, hostPath });
+    spinner.succeed("Done! :)");
   },
   onStatic: ({ sourcePath, destinationPath }) => {},
 });
