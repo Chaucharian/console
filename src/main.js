@@ -95,8 +95,8 @@ async function restartNginx() {
   await command(`systemctl restart nginx`);
 }
 
-async function runPm2build({ user, host }) {
-  await command(`ssh ${user}@${host} 'npm run build:pm2`);
+async function runPm2build({ user, host, hostPath }) {
+  await command(`ssh ${user}@${host} 'cd ~${hostPath} && npm run build:pm2`);
 }
 
 async function createProxyFlow() {
@@ -208,7 +208,7 @@ params.noOptions(() => createProxyFlow());
 params.deploy({
   onServer: async ({ sourcePath, hostPath, user, host }) => {
     await uploadSsh({ sourcePath, hostPath: `${user}@${host}:${hostPath}` });
-    await runPm2build({ user, host });
+    await runPm2build({ user, host, hostPath });
   },
   onStatic: ({ sourcePath, destinationPath }) => {},
 });
