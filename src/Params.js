@@ -12,6 +12,22 @@ export class Params {
         command: "deploy",
         describe: "Deploy application",
         builder: {
+          exclude: {
+            describe: "File to exclude from the transfer",
+            type: "string",
+            alias: "ex",
+            demandOption: false,
+            default: "",
+            nargs: 1,
+            coerce: function (arg) {
+              const excludeFiles = arg;
+              if (excludeFiles === "") {
+                throw new Error("Invalid exclude files");
+              }
+
+              return { excludeFiles };
+            },
+          },
           server: {
             describe: "Deploy to server",
             type: "string",
@@ -46,7 +62,10 @@ export class Params {
           if (argv.server) {
             console.log(`Deploying to server ${argv.server}`);
             // Your deployment code for server
-            await onServer(argv.server);
+            await onServer({
+              ...argv.server,
+              excludeFiles: argv?.exclude?.excludeFiles ?? "",
+            });
           } else if (argv.static) {
             console.log("Deploying to static hosting");
             // Your deployment code for static hosting

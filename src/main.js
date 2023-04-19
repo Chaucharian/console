@@ -47,14 +47,15 @@ const nginxConfig = {
     `,
 };
 
-async function uploadSsh({ sourcePath, hostPath }) {
+async function uploadSsh({ sourcePath, hostPath, excludeFiles = [""] }) {
   // Build the command
   var rsync = new Rsync()
     .shell("ssh")
     .flags("htvzrp")
     .source(sourcePath.trim())
     .destination(hostPath.trim())
-    .set("progress");
+    .set("progress")
+    .exclude(excludeFiles);
 
   const commandText = rsync.command();
 
@@ -95,8 +96,8 @@ async function restartNginx() {
   await command(`systemctl restart nginx`);
 }
 
-async function runPm2build({ user, host, hostPath }) {
-  await command(`ssh ${user}@${host} 'cd ~${hostPath} && npm run build:pm2`);
+async function runSSH({ user, host, command }) {
+  await command(`ssh ${user}@${host} '${command}' `);
 }
 
 async function createProxyFlow() {
@@ -206,11 +207,20 @@ async function createProxyFlow() {
 const params = new Params();
 params.noOptions(() => createProxyFlow());
 params.deploy({
-  onServer: async ({ sourcePath, hostPath, user, host }) => {
+  onServer: async ({ sourcePath, hostPath, user, host, excludeFiles }) => {
+    console.log("EEE", excludeFiles);
     spinner.start();
 
-    await uploadSsh({ sourcePath, hostPath: `${user}@${host}:${hostPath}` });
-    await runPm2build({ user, host, hostPath });
+    await uploadSsh({
+      sourcePath,
+      hostPath: `${user}@${host}:${hostPath}`,
+      excludeFiles,
+    });
+    await runSSH({
+      user,
+      host,
+      command: `cd ${hostPath} && npm i && npm run build:pm2`,
+    });
     spinner.succeed("Done! :)");
   },
   onStatic: ({ sourcePath, destinationPath }) => {},
