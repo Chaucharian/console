@@ -14,14 +14,13 @@ export class Params {
         builder: {
           exclude: {
             describe: "File to exclude from the transfer",
-            type: "string",
+            type: "array",
             alias: "ex",
             demandOption: false,
             default: "",
-            nargs: 1,
             coerce: function (arg) {
               const excludeFiles = arg;
-              if (excludeFiles === "") {
+              if (!excludeFiles.length) {
                 throw new Error("Invalid exclude files");
               }
 

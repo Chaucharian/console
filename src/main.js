@@ -47,15 +47,15 @@ const nginxConfig = {
     `,
 };
 
-async function uploadSsh({ sourcePath, hostPath, excludeFiles = [""] }) {
+async function uploadSsh({ sourcePath, hostPath, excludeFiles }) {
   // Build the command
   var rsync = new Rsync()
     .shell("ssh")
     .flags("htvzrp")
+    .exclude(excludeFiles)
     .source(sourcePath.trim())
     .destination(hostPath.trim())
-    .set("progress")
-    .exclude(excludeFiles);
+    .set("progress");
 
   const commandText = rsync.command();
 
