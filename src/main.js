@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import { exec } from "child_process";
 import Rsync from "rsync";
 import ora from "ora";
+import { Params } from "./Params.js";
 
 const spinner = ora("Loading...");
 
@@ -46,18 +47,19 @@ const nginxConfig = {
     `,
 };
 
-async function uploadSsh({ pathSource, pathHost }) {
+async function uploadSsh({ sourcePath, hostPath }) {
   // Build the command
   var rsync = new Rsync()
     .shell("ssh")
     .flags("htvzrp")
-    .source(pathSource.trim())
-    .destination(pathHost.trim())
+    .source(sourcePath.trim())
+    .destination(hostPath.trim())
     .set("progress");
 
   const commandText = rsync.command();
 
-  console.log(commandText);
+  console.log(`Executing command: ${commandText}`);
+
   await makePromise((resolve, reject) =>
     rsync.execute(
       function execute(error, code, cmd) {
@@ -91,6 +93,10 @@ async function linkFile({ fileName }) {
 }
 async function restartNginx() {
   await command(`systemctl restart nginx`);
+}
+
+async function runPm2build({ user, host }) {
+  await command(`ssh ${user}@${host} 'npm run build:pm2`);
 }
 
 async function createProxyFlow() {
@@ -197,4 +203,12 @@ async function createProxyFlow() {
   generateSSL(config);
 }
 
-createProxyFlow();
+const params = new Params();
+params.noOptions(() => createProxyFlow());
+params.deploy({
+  onServer: async ({ sourcePath, hostPath, user, host }) => {
+    await uploadSsh({ sourcePath, hostPath: `${user}@${host}:${hostPath}` });
+    await runPm2build({ user, host });
+  },
+  onStatic: ({ sourcePath, destinationPath }) => {},
+});
