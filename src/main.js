@@ -96,8 +96,8 @@ async function restartNginx() {
   await command(`systemctl restart nginx`);
 }
 
-async function runSSH({ user, host, command }) {
-  await command(`ssh ${user}@${host} '${command}' `);
+async function runSSH({ user, host, shCommand }) {
+  await command(`ssh ${user}@${host} '${shCommand}' `);
 }
 
 async function createProxyFlow() {
@@ -208,7 +208,6 @@ const params = new Params();
 params.noOptions(() => createProxyFlow());
 params.deploy({
   onServer: async ({ sourcePath, hostPath, user, host, excludeFiles }) => {
-    console.log("EEE", excludeFiles);
     spinner.start();
 
     await uploadSsh({
@@ -219,7 +218,7 @@ params.deploy({
     await runSSH({
       user,
       host,
-      command: `cd ${hostPath} && npm i && npm run build:pm2`,
+      shCommand: `cd ${hostPath} && npm i && npm run build:pm2`,
     });
     spinner.succeed("Done! :)");
   },
