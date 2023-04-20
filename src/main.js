@@ -224,9 +224,10 @@ params.deploy({
     host,
     excludeFiles,
     envs,
+    postdeploy,
   }) => {
     spinner.start();
-
+    console.log("POOOST", postdeploy);
     await uploadSsh({
       sourcePath,
       hostPath: `${user}@${host}:${hostPath}`,
@@ -236,7 +237,7 @@ params.deploy({
       user,
       host,
       envs,
-      shCommand: `cd ${hostPath} && npm i && npm run start:pm2`,
+      shCommand: postdeploy,
     });
     spinner.succeed("Done! :)");
   },

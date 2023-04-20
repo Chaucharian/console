@@ -12,6 +12,19 @@ export class Params {
         command: "deploy",
         describe: "Deploy application",
         builder: {
+          postdeploy: {
+            describe: "Post deploy sh command to execute",
+            type: "string",
+            alias: "pd",
+            demandOption: false,
+            default: "",
+            nargs: 1,
+            coerce: function (arg) {
+              const command = arg;
+
+              return { command };
+            },
+          },
           envs: {
             describe: "Env vars to inject on the host",
             type: "array",
@@ -20,7 +33,8 @@ export class Params {
             default: "",
             coerce: function (arg) {
               const envs = arg;
-              if (!excludeFiles.length) {
+              console.log("EENVS", envs);
+              if (!envs.length) {
                 throw new Error("Must provide some env bar i.e EXAMPLE=123");
               }
 
@@ -77,7 +91,8 @@ export class Params {
             console.log(`Deploying to server ${argv.server}`);
             // Your deployment code for server
             await onServer({
-              server: argv.server,
+              ...argv.server,
+              postdeploy: argv.postdeploy?.command,
               envs: argv.envs?.envs,
               excludeFiles: argv.exclude?.excludeFiles ?? "",
             });
