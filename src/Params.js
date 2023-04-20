@@ -12,6 +12,21 @@ export class Params {
         command: "deploy",
         describe: "Deploy application",
         builder: {
+          envs: {
+            describe: "Env vars to inject on the host",
+            type: "array",
+            alias: "e",
+            demandOption: false,
+            default: "",
+            coerce: function (arg) {
+              const envs = arg;
+              if (!excludeFiles.length) {
+                throw new Error("Must provide some env bar i.e EXAMPLE=123");
+              }
+
+              return { envs };
+            },
+          },
           exclude: {
             describe: "File to exclude from the transfer",
             type: "array",
@@ -62,8 +77,9 @@ export class Params {
             console.log(`Deploying to server ${argv.server}`);
             // Your deployment code for server
             await onServer({
-              ...argv.server,
-              excludeFiles: argv?.exclude?.excludeFiles ?? "",
+              server: argv.server,
+              envs: argv.envs?.envs,
+              excludeFiles: argv.exclude?.excludeFiles ?? "",
             });
           } else if (argv.static) {
             console.log("Deploying to static hosting");

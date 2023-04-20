@@ -96,9 +96,19 @@ async function restartNginx() {
   await command(`systemctl restart nginx`);
 }
 
-async function runSSH({ user, host, shCommand }) {
-  await command(`ssh ${user}@${host} '${shCommand}' `);
+const getENVSdeclaration = (envs) =>
+  envs.map((env) => `export ${env}`).join(" ");
+
+async function runSSH({ user, host, shCommand, envs }) {
+  await command(
+    `ssh ${user}@${host} '${getENVSdeclaration(envs)} && ${shCommand}' `
+  );
 }
+
+// async function setENVS({ user, host, envs }) {
+//   const shCommand = envs.map((env) => `export ${env}`).join(" ");
+//   await runSSH({ user, host, shCommand });
+// }
 
 async function createProxyFlow() {
   let config = {};
@@ -207,7 +217,14 @@ async function createProxyFlow() {
 const params = new Params();
 params.noOptions(() => createProxyFlow());
 params.deploy({
-  onServer: async ({ sourcePath, hostPath, user, host, excludeFiles }) => {
+  onServer: async ({
+    sourcePath,
+    hostPath,
+    user,
+    host,
+    excludeFiles,
+    envs,
+  }) => {
     spinner.start();
 
     await uploadSsh({
@@ -218,7 +235,8 @@ params.deploy({
     await runSSH({
       user,
       host,
-      shCommand: `cd ${hostPath} && npm i && npm run build:pm2`,
+      envs,
+      shCommand: `cd ${hostPath} && npm i && npm run start:pm2`,
     });
     spinner.succeed("Done! :)");
   },
