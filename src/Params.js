@@ -6,23 +6,26 @@ export class Params {
     this.yargs = Yargs(process.argv.slice(2));
   }
 
-  deploy({ onServer, onStatic }) {
+  deploy({ onCompleted }) {
     this.yargs
       .command({
         command: "deploy",
         describe: "Deploy application",
         builder: {
-          postdeploy: {
-            describe: "Post deploy sh command to execute",
-            type: "string",
-            alias: "pd",
+          command: {
+            describe: "Run sh command on host",
+            type: "array",
+            alias: "cm",
             demandOption: false,
             default: "",
-            nargs: 1,
+            nargs: 2,
             coerce: function (arg) {
-              const command = arg;
-
-              return { command };
+              const [user, host] = arg[0].split("@");
+              const script = arg[1];
+              if (host === "") {
+                throw new Error("Invalid ssh format try i.e root@domain.com");
+              }
+              return { script, user, host };
             },
           },
           envs: {
@@ -33,12 +36,10 @@ export class Params {
             default: "",
             coerce: function (arg) {
               const envs = arg;
-              console.log("EENVS", envs);
               if (!envs.length) {
                 throw new Error("Must provide some env bar i.e EXAMPLE=123");
               }
-
-              return { envs };
+              return envs;
             },
           },
           exclude: {
@@ -52,30 +53,26 @@ export class Params {
               if (!excludeFiles.length) {
                 throw new Error("Invalid exclude files");
               }
-
-              return { excludeFiles };
+              return excludeFiles;
             },
           },
           server: {
             describe: "Deploy to server",
-            type: "string",
+            type: "array",
             alias: "s",
             demandOption: false,
-            default: "./",
+            default: "",
             nargs: 3,
             coerce: function (arg) {
               const [user, host] = arg[0].split("@");
-
               if (host === "") {
                 throw new Error("Invalid ssh format try i.e root@domain.com");
               }
-
               const sourcePath = arg[1];
               const hostPath = arg[2];
               if (sourcePath === "" || hostPath === "") {
                 throw new Error("Invalid path");
               }
-
               return { sourcePath, hostPath, user, host };
             },
           },
@@ -87,22 +84,7 @@ export class Params {
           },
         },
         handler: async function (argv) {
-          if (argv.server) {
-            console.log(`Deploying to server ${argv.server}`);
-            // Your deployment code for server
-            await onServer({
-              ...argv.server,
-              postdeploy: argv.postdeploy?.command,
-              envs: argv.envs?.envs,
-              excludeFiles: argv.exclude?.excludeFiles ?? "",
-            });
-          } else if (argv.static) {
-            console.log("Deploying to static hosting");
-            // Your deployment code for static hosting
-            await onStatic(argv.server);
-          } else {
-            console.log("Please specify either --server or --static option");
-          }
+          await onCompleted(argv);
         },
       })
       .help("h")

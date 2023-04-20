@@ -11,6 +11,7 @@ function command(cmd) {
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
         console.warn(error);
+        reject(error);
       }
       resolve(stdout ? stdout : stderr);
     });
@@ -47,19 +48,19 @@ const nginxConfig = {
     `,
 };
 
-async function uploadSsh({ sourcePath, hostPath, excludeFiles }) {
+async function uploadSsh({ sourcePath, hostPath, exclude }) {
   // Build the command
   var rsync = new Rsync()
     .shell("ssh")
     .flags("htvzrp")
-    .exclude(excludeFiles)
+    .exclude(exclude)
     .source(sourcePath.trim())
     .destination(hostPath.trim())
     .set("progress");
 
   const commandText = rsync.command();
 
-  console.log(`Executing command: ${commandText}`);
+  console.log(`Executing uploading: ${commandText}`);
 
   await makePromise((resolve, reject) =>
     rsync.execute(
@@ -99,16 +100,11 @@ async function restartNginx() {
 const getENVSdeclaration = (envs) =>
   envs.map((env) => `export ${env}`).join(" ");
 
-async function runSSH({ user, host, shCommand, envs }) {
-  await command(
-    `ssh ${user}@${host} '${getENVSdeclaration(envs)} && ${shCommand}' `
+async function runSSH({ user, host, script, envs }) {
+  return await command(
+    `ssh ${user}@${host} '${getENVSdeclaration(envs)} && ${script}' `
   );
 }
-
-// async function setENVS({ user, host, envs }) {
-//   const shCommand = envs.map((env) => `export ${env}`).join(" ");
-//   await runSSH({ user, host, shCommand });
-// }
 
 async function createProxyFlow() {
   let config = {};
@@ -217,29 +213,33 @@ async function createProxyFlow() {
 const params = new Params();
 params.noOptions(() => createProxyFlow());
 params.deploy({
-  onServer: async ({
-    sourcePath,
-    hostPath,
-    user,
-    host,
-    excludeFiles,
-    envs,
-    postdeploy,
-  }) => {
+  onCompleted: async (argv) => {
+    const { server, exclude, envs, command } = argv;
     spinner.start();
-    console.log("POOOST", postdeploy);
-    await uploadSsh({
-      sourcePath,
-      hostPath: `${user}@${host}:${hostPath}`,
-      excludeFiles,
-    });
-    await runSSH({
-      user,
-      host,
-      envs,
-      shCommand: postdeploy,
-    });
-    spinner.succeed("Done! :)");
+    console.log("VALUES", argv);
+    try {
+      if (server?.sourcePath) {
+        const { user, host, sourcePath, hostPath } = server;
+        await uploadSsh({
+          sourcePath: sourcePath,
+          hostPath: `${user}@${host}:${hostPath}`,
+          exclude,
+        });
+      }
+      if (command?.script) {
+        const { user, host, script } = command;
+        const output = await runSSH({
+          user,
+          host,
+          envs,
+          script,
+        });
+        console.log(`command output: ${output}`);
+      }
+      spinner.succeed("Done! :)");
+    } catch (error) {
+      console.log(`An error ocurred running some command: ${error.message}`);
+      spinner.fail("Error! :(");
+    }
   },
-  onStatic: ({ sourcePath, destinationPath }) => {},
 });
