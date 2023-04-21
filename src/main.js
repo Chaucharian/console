@@ -102,7 +102,9 @@ const getENVSdeclaration = (envs) =>
 
 async function runSSH({ user, host, script, envs }) {
   return await command(
-    `ssh ${user}@${host} '${getENVSdeclaration(envs)} && ${script}' `
+    `ssh -t ${user}@${host} 'bash -c -i "${getENVSdeclaration(
+      envs
+    )} && ${script}"'`
   );
 }
 
@@ -216,7 +218,7 @@ params.deploy({
   onCompleted: async (argv) => {
     const { server, exclude, envs, command } = argv;
     spinner.start();
-    console.log("VALUES", argv);
+
     try {
       if (server?.sourcePath) {
         const { user, host, sourcePath, hostPath } = server;
@@ -238,8 +240,9 @@ params.deploy({
       }
       spinner.succeed("Done! :)");
     } catch (error) {
-      console.log(`An error ocurred running some command: ${error.message}`);
+      const errorMessage = `An error ocurred running some command: ${error.message}`;
       spinner.fail("Error! :(");
+      throw new Error(errorMessage);
     }
   },
 });
