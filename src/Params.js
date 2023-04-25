@@ -47,10 +47,10 @@ export class Params {
             type: "array",
             alias: "ex",
             demandOption: false,
-            default: "",
+            // default: "",
             coerce: function (arg) {
               const excludeFiles = arg;
-              if (!excludeFiles.length) {
+              if (!excludeFiles?.length) {
                 throw new Error("Invalid exclude files");
               }
               return excludeFiles;

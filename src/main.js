@@ -53,10 +53,13 @@ async function uploadSsh({ sourcePath, hostPath, exclude }) {
   var rsync = new Rsync()
     .shell("ssh")
     .flags("htvzrp")
-    .exclude(exclude)
+    .set("progress")
     .source(sourcePath.trim())
-    .destination(hostPath.trim())
-    .set("progress");
+    .destination(hostPath.trim());
+
+  if (exclude?.length) {
+    rsync.exclude(exclude);
+  }
 
   const commandText = rsync.command();
 
