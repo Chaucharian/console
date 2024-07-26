@@ -31,7 +31,7 @@ const nginxConfig = {
         proxy_pass http://localhost:${port};
         }
         index index.html;
-        server_name   www.${subdomain}.${domain}.com  ${subdomain}.${domain}.com;
+        server_name   www.${subdomain}.${domain}  ${subdomain}.${domain};
     } 
   `,
   static: ({ subdomain, domain, path = "/home/example/dist" }) => `
@@ -43,7 +43,7 @@ const nginxConfig = {
       }   
      
       index index.html;
-      server_name   www.${subdomain}.${domain}.com  ${subdomain}.${domain}.com;
+      server_name   www.${subdomain}.${domain}  ${subdomain}.${domain};
   } 
     `,
 };
@@ -83,9 +83,12 @@ async function uploadSsh({ sourcePath, hostPath, exclude }) {
     )
   );
 }
+
 async function generateSSL({ fullDomain }) {
-  await command(`certbot --nginx -d ${fullDomain} -d www.${fullDomain}`);
-  await command(`certbot renew --dry-run`);
+  await command(
+    `certbot --nginx -d ${fullDomain} -d www.${fullDomain} --force-renew`
+  );
+  // await command(`certbot renew --dry-run`);
 }
 
 async function makeNginxFile({ config, fileName }) {
@@ -93,7 +96,7 @@ async function makeNginxFile({ config, fileName }) {
 }
 async function linkFile({ fileName }) {
   await command(
-    `ln -s /etc/nginx/sites-available/${fileName} /etc/nginx/sites-enabled/`
+    `ln -sfn /etc/nginx/sites-available/${fileName} /etc/nginx/sites-enabled/`
   );
 }
 async function restartNginx() {
@@ -104,6 +107,8 @@ const getENVSdeclaration = (envs) =>
   envs.map((env) => `export ${env}`).join(" ");
 
 async function runSSH({ user, host, script, envs }) {
+  console.log("EEEENVSS", getENVSdeclaration(envs));
+
   return await command(
     `ssh -t ${user}@${host} 'bash -c -i "${getENVSdeclaration(
       envs
@@ -124,23 +129,23 @@ async function createProxyFlow() {
   ]);
 
   if (choice === "upload files") {
-    const { pathSource } = await inquirer.prompt([
+    const { sourcePath } = await inquirer.prompt([
       {
         type: "text",
-        name: "pathSource",
+        name: "sourcePath",
         message: "write source path (ie. ./ ./dist)",
       },
     ]);
-    const { pathHost } = await inquirer.prompt([
+    const { hostPath } = await inquirer.prompt([
       {
         type: "text",
-        name: "pathHost",
+        name: "hostPath",
         message:
           "write destination path (ie. root@marplacode.com:/home/example)",
       },
     ]);
     spinner.start();
-    await uploadSsh({ pathSource, pathHost });
+    await uploadSsh({ sourcePath, hostPath });
     spinner.succeed("Done!");
     return;
   }
@@ -178,7 +183,7 @@ async function createProxyFlow() {
     ]);
     config = {
       config: nginxConfig.server({ port, domain, subdomain }),
-      fileName: `${subdomain}.${domain}.com.conf`,
+      fileName: `${subdomain}.${domain}.conf`,
     };
   } else {
     const { domain } = await inquirer.prompt([
@@ -204,8 +209,8 @@ async function createProxyFlow() {
     ]);
     config = {
       config: nginxConfig.static({ domain, subdomain, path }),
-      fileName: `${subdomain}.${domain}.com.conf`,
-      fullDomain: subdomain + domain,
+      fileName: `${subdomain}.${domain}.conf`,
+      fullDomain: subdomain + "." + domain,
     };
   }
 

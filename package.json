@@ -1,15 +1,13 @@
 {
   "name": "@chaucharian/console",
-  "version": "2.0.15",
+  "version": "2.0.28",
   "type": "module",
   "homepage": "https://github.com/Chaucharian/console",
   "repository": {
     "type": "git",
     "url": "https://github.com/Chaucharian/console"
   },
-  "bin": {
-    "console": "bin/index.js"
-  },
+  "bin": "bin/index.js",
   "main": "index.js",
   "scripts": {
     "start:dev": "node ./bin/index.js",
@@ -24,6 +22,5 @@
     "rsync": "^0.6.1",
     "yargs": "^17.7.1"
   },
-  "devDependencies": {},
   "description": ""
 }
